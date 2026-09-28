@@ -240,5 +240,19 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
 18) Now we are able to login. We can create an ability for the login users for them to create blog posts.
     First, we would have to create a table inside our database for the blog posting.
     For that, we would have to make changes in the migration file to create a new table. We will ask Laravel to create one using cmd:php artisan make:migration create_post
-    _table
+
+    database/migrations/2026_09_28_065202_create_post_table.php
+    And we would have to run a cmd: to run this migration in order to run the migration that is not being ran.
+    We will see a new table : php artisan migrate
+
+    ```php
+    Schema::create('post', function (Blueprint $table) {
+                $table->id();
+                $table->string('title');
+                $table->longText('body');
+                $table->timestamps();
+                //in order to connect the two tables. 
+                $table-> foreignId('user_id')->contrained();
+            });
+    ```
 19)
