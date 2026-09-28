@@ -455,3 +455,77 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     Same trick as the delete button: HTML forms can't send `PUT` requests natively, so `@method('PUT')` spoofs one — `PUT`/`PATCH` are the conventional HTTP methods for "update an existing resource." The `value="{{$post->title}}"` and `{{$post->body}}` pre-fill the inputs with the post's existing data so the user is editing, not starting from a blank form.
 
     Clicking "Edit" on a post now takes you to a form pre-filled with that post's data — but clicking "Save Changes" won't do anything yet, since there's no route or controller method handling `PUT /edit-post/{post}` yet. That's the next step.
+23) Now lets actually make "Save Changes" work, by handling the `PUT` request the edit form sends.
+
+    First, we add a route for it in `routes/web.php`, right under the `GET` route that shows the edit screen:
+
+    ```php
+    Route::get('/edit-post/{post}', [PostController::class, 'showEditScreen']);
+    Route::put('/edit-post/{post}', [PostController::class, 'updatePost']);
+    ```
+
+    Both routes share the same URL, `/edit-post/{post}`, but Laravel tells them apart by HTTP method — `GET` (a normal link click) shows the form, `PUT` (the form's `@method('PUT')` submission from step 22) saves it. This is why it's easy to accidentally wire the `PUT` route to the wrong method (e.g. pointing it back at `showEditScreen`) — both routes look almost identical, and if you do, submitting the form just silently re-shows the same unchanged edit screen instead of saving anything, since `showEditScreen` never touches `$request` or calls `update()`.
+
+    Now, the actual `updatePost` method in `app/Http/Controllers/PostController.php`:
+
+    ```php
+    public function updatePost(Post $post, Request $request){
+        //We need to add add security. Only the author can edit. 
+        if(auth()->user()->id != $post['user_id']){
+            return redirect('/');
+        }
+
+        $incomingFields = $request->validate([
+            'title' => 'required',
+            'body' => 'required'
+        ]);
+        $incomingFields['title'] = strip_tags($incomingFields['title']);
+        $incomingFields['body'] = strip_tags($incomingFields['body']);
+
+        $post->update($incomingFields);
+        return redirect('/');
+    }
+    ```
+
+    A few things worth calling out:
+
+    - `Post $post` again uses implicit route model binding (same as `showEditScreen` in step 22), so Laravel hands us the actual post being edited based on the `{post}` id in the URL.
+    - The ownership check, `if(auth()->user()->id != $post['user_id'])`, stops one logged-in user from editing another user's post just by guessing/typing their post id into the URL — without this check, anyone logged in could `PUT /edit-post/{any id}` and change someone else's post. We added the same check to `showEditScreen` in step 22 so a user can't even open the edit form for a post that isn't theirs.
+    - We validate and `strip_tags()` the incoming `title`/`body` exactly like we did in `createPost` back in step 20 — same reasoning: required fields, and no raw HTML/JS getting saved.
+    - `$post->update($incomingFields)` is Eloquent's shortcut for "take this array of fields and save them onto this existing row" — unlike `Post::create()` (which makes a *new* row), `update()` modifies the row we already fetched via route model binding.
+
+    Try it: click "Edit" on one of your posts, change the title or body, hit "Save Changes" — you should land back on `/` with the updated post showing.
+24) Now lets wire up the last piece of CRUD: deleting a post. The "Delete" button and form were already added to `resources/views/home.blade.php` back in step 22:
+
+    ```blade
+    <form action="/delete-post/{{$post->id}}" method ="POST">
+        @csrf
+        @method('DELETE')
+        <button>Delete</button>
+    </form>
+    ```
+
+    That just needed a matching route and controller method to actually do something. First, the route in `routes/web.php`:
+
+    ```php
+    Route::delete('/delete-post/{post}', [PostController::class, 'deletePost']);
+    ```
+
+    Same pattern as the edit route in step 23 — the form's `@method('DELETE')` spoofs a `DELETE` request, and `{post}` gives us implicit route model binding again.
+
+    Then, in `app/Http/Controllers/PostController.php`:
+
+    ```php
+    public function deletePost(Post $post){
+         if(auth()->user()->id === $post['user_id']){
+            $post->delete();
+        }
+        return redirect('/');
+    }
+    ```
+
+    This is a slightly different (but equally valid) way of writing the ownership check we used in `updatePost` and `showEditScreen`: instead of checking `!=` and bailing out early with a redirect, here we check `===` and only call `$post->delete()` if it matches — either way, someone who isn't the author never gets to touch the post. If the check fails, we just fall through to `return redirect('/')` without deleting anything, same end result as the early-return version.
+
+    `$post->delete()` is Eloquent's method for removing the row from the database entirely — after this runs, that post's `id` is gone from the `posts` table for good (there's no "trash" here, unlike Laravel's optional soft-delete feature).
+
+    Try it: hit "Delete" on one of your posts — it should disappear from the list on `/`. All four CRUD operations — Create (step 20), Read (step 21), Update (step 23), and Delete (this step) — are now working end to end.
