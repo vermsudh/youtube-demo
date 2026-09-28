@@ -9,9 +9,9 @@
         <h2>Register</h2>
         <form action="/register" method="POST">
             @csrf
-            <input type="text" placeholder="name">
-            <input type="email" placeholder="email">
-            <input type="password" placeholder="password">
+            <input name="name" type="text" placeholder="name">
+            <input name="email" type="email" placeholder="email">
+            <input name="password" type="password" placeholder="password">
             <button>Register</button>
         </form>
    </div>
