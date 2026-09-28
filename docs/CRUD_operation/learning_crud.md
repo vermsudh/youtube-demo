@@ -103,6 +103,7 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
         }
     }
     ```
+
     Also, we have to make sure that we will try to name the fields on the form for all the fields.
 
     We can also setup some more rules in the controller in order to get the right input from the user.
@@ -135,6 +136,7 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     $incomingFields['password'] = bcrypt($incomingFields['password']);
     User::create(incomingFields);
     ```
+
     This will help us to take the incomding request from the form and store it in the database.
     We have used bycrpt() method provided by laravel in order to ecrypt the user password.
     Now, if we try to input the data, we can check if the values are getting stored in the database or not.
@@ -169,6 +171,7 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
             return redirect('/');
         }
     ```
+
     Then, we would have to to make changes on the fronend on our blade.php file.
 
     ```blade
@@ -191,7 +194,51 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
          </div>
         @endauth
     ```
+
     Also, we would have to mention the route when we create a new form on the front-end.
     `Route::post('/logout', [UserController :: class, 'logout']);`
     This will
-17) Now lets created a login form in the similar method.
+17) Now lets created a login form in the similar method for login method
+    In  app/Http/Controllers/UserController.php
+
+    ```php
+    public function login(Request $request){
+
+        $incomingFields = $request-> validate(
+            [
+                'loginName' => 'required',
+                'loginPassword'=> 'required'
+            ]
+        );
+
+        if(auth()->attempt(['name' => $incomingFields['loginName'], 'password' => $incomingFields['loginPassword']])){
+            $request->session()->regenerate();
+        }
+
+        return redirect('/');
+
+        }
+    ```
+
+    Now, we have to make changes on the front-end.
+
+    ```blade
+    <div style="border: 3px solid black;">
+            <h2>Login</h2>
+            <form action="/login" method="POST">
+                @csrf
+                <input name="loginName" type="text" placeholder="name">
+
+                <input name="loginPassword" type="password" placeholder="password">
+                <button>Login</button>
+            </form>
+         </div>
+    ```
+
+    Then mention the correct route in order to guide into the right function.
+    `Route::post('/login', [UserController :: class, 'login']);`
+18) Now we are able to login. We can create an ability for the login users for them to create blog posts.
+    First, we would have to create a table inside our database for the blog posting.
+    For that, we would have to make changes in the migration file to create a new table. We will ask Laravel to create one using cmd:php artisan make:migration create_post
+    _table
+19)

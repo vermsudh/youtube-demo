@@ -30,7 +30,7 @@
             <input name="loginName" type="text" placeholder="name">
 
             <input name="loginPassword" type="password" placeholder="password">
-            <button>Register</button>
+            <button>Login</button>
         </form>
      </div>
     @endauth
