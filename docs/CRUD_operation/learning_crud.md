@@ -66,4 +66,132 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     /app/Http/Controllers
     In order to create a controller, we would have to type this in the cmd line.
     cmd: 'php artisan make:controller UserController'
-11)
+11) Now, we have to make changes on the controller.
+
+    where we create a function called register.
+
+    ```php
+    class UserController extends Controller
+    {
+        public function register(){
+            return 'Hello from our controller';
+        }
+    }
+    ```
+12) Then, we would have to make changes in the route.php
+    `Route::post('/register', [UserController :: class, 'register']);`
+    to specify the correct route and import the UserController Class in order to use it.
+13) Now, we will try to access the data that the user is filling on the form.
+
+    In a  **Laravel controller** , the `Request $request` parameter uses **dependency injection** to provide an instance of the `Illuminate\Http\Request` class, which holds all of the data, headers, and files sent by the user's browser or API client. [[1](https://laravel.com/framework/docs/12.x/requests), [2](https://www.scribd.com/presentation/920612882/GetRequestedData3-1)]
+
+    By type-hinting `Request`, Laravel automatically fills the `$request` variable with the current HTTP request information. This allows you to inspect and interact with incoming network traffic inside your controller method. [[1](https://laravel.com/framework/docs/5.2/requests), [2](https://laravel.com/framework/docs/5.0/requests), [3](https://www.scribd.com/presentation/920612882/GetRequestedData3-1)]
+
+    Now, we would have to mention all the fields in the controller:
+
+    ```php
+    class UserController extends Controller
+    {
+        public function register(Request $request){
+            $incomingFields = $request->validate([
+                // we are going to make all the fields requied. 
+                'name' => 'required',
+                'email' => 'required',
+                'password' => 'required',
+            ]);
+            return 'Hello from our controller';
+        }
+    }
+    ```
+    Also, we have to make sure that we will try to name the fields on the form for all the fields.
+
+    We can also setup some more rules in the controller in order to get the right input from the user.
+    Lets say we do not want to accept any name which is shorted than 3 characters.
+    We can create an array after defining our variable.
+
+    ```php
+     $incomingFields = $request->validate([
+                // we are going to make all the fields requied. 
+                'name' => ['required', 'min:3', 'max: 10'],
+                'email' => ['required', 'email'],
+                'password' => ['required', 'min:8', 'max: 255'],
+            ]);
+    ```
+14) Now, comes the database part where we would need to store the input values in the database somewhere.
+    We have to use mySQL.
+    For now, since I have not installed mySQL on my local mac. I will just create a sqlLite using this cmd:
+    sudhanshu@Sudhanshus-MacVati youtube_demo % touch database/database.sqlite
+    and make sure that my .env file has the right database name for the connection.
+    Then we can work on making the tables in the schema.
+    In order to create the tables, we can run the cmd : 'php artisan migrate'
+    This will generate default tables that are already there in the migration file under this folder:
+    database/migrations
+15) Model:
+    In Laravel, a **Model** is  =a PHP class that represents a specific database table and acts as the primary tool for interacting with your data= . Laravel uses an  **Object-Relational Mapper (ORM) called Eloquent** , which abstracts away complex SQL queries and allows you to perform CRUD (Create, Read, Update, Delete) operations using intuitive object-oriented code.
+    Now, we already have a user Model installed by Laravel.
+    We are going to use it using a create method
+
+    ```php
+    $incomingFields['password'] = bcrypt($incomingFields['password']);
+    User::create(incomingFields);
+    ```
+    This will help us to take the incomding request from the form and store it in the database.
+    We have used bycrpt() method provided by laravel in order to ecrypt the user password.
+    Now, if we try to input the data, we can check if the values are getting stored in the database or not.
+
+    A few easy ways to check what's actually in the users table:
+
+    1. Tinker (quickest, no extra tools)
+       php artisan tinker --execute="print_r(App\Models\User::all()->toArray());"
+       or interactively:
+       php artisan tinker
+
+    >>> App\Models\User::all();
+    >>>
+    >>
+    >
+
+    2. SQLite CLI directly on the file
+       sqlite3 database/database.sqlite "SELECT id, name, email, created_at FROM users;"
+    3. A GUI
+       Since database/database.sqlite is a plain file, you can open it with any SQLite browser — e.g. DB Browser for SQLite (free, cross-platform) or the SQLite extension in VS Code/PhpStorm. Just point it at database/database.sqlite in the project root and browse the users table visually.
+    4. Laravel's built-in php artisan db shell
+       php artisan db
+       This drops you into the sqlite3 shell already connected to your configured database, so you can just run SELECT * FROM users;.
+16) Log In and Log out feature. Lets build a login system for the users.
+    This involves session and cookies.
+    In order to create a logout button.
+    We have to create a new function in the UserController with the name logout.
+
+    ```php
+    public function logout(){
+            auth()-> logout();
+            return redirect('/');
+        }
+    ```
+    Then, we would have to to make changes on the fronend on our blade.php file.
+
+    ```blade
+    @auth
+        <p>Congrats you are logged in</p>
+        <form action="/logout" method="POST">
+            @csrf 
+            <button>Log out</button>
+        </form>
+        @else
+         <div style="border: 3px solid black;">
+            <h2>Register</h2>
+            <form action="/register" method="POST">
+                @csrf
+                <input name="name" type="text" placeholder="name">
+                <input name="email" type="email" placeholder="email">
+                <input name="password" type="password" placeholder="password">
+                <button>Register</button>
+            </form>
+         </div>
+        @endauth
+    ```
+    Also, we would have to mention the route when we create a new form on the front-end.
+    `Route::post('/logout', [UserController :: class, 'logout']);`
+    This will
+17) Now lets created a login form in the similar method.
