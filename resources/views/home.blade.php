@@ -11,6 +11,18 @@
         @csrf 
         <button>Log out</button>
     </form>
+
+    <div style="border: 3px solid black;">
+
+        <h2>Create a new Post</h2>
+        <form action="/create-post" method="POST">
+            @csrf
+            <input name="title" type="text"><br> <br>
+            <textarea name="body" id="" cols="30" rows="10"></textarea>
+            <button> Save Button</button>
+        </form>
+    </div>
+
     @else
      <div style="border: 3px solid black;">
         <h2>Register</h2>

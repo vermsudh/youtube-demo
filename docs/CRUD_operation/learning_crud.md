@@ -255,4 +255,21 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
                 $table-> foreignId('user_id')->contrained();
             });
     ```
-19)
+19) Now, we are going to make changes on the fron-end. When the user is logged in, we want to show them a blog posting.
+
+    ```blade
+    <div style="border: 3px solid black;">
+
+            <h2>Create a new Post</h2>
+            <form action="/create-post" method="POST">
+                @csrf
+                <input name="title" type="text"><br> <br>
+                <textarea name="body" id="" cols="30" rows="10"></textarea>
+                <button> Save Button</button>
+            </form>
+        </div>
+    ```
+
+    Now, lets organize the route and create a seperate controler for posting methods.
+    using cmd : 
+20) sdfsaf

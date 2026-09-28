@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('post', function (Blueprint $table) {
+        Schema::create('posts', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->longText('body');
             $table->timestamps();
-            //in order to connect the two tables. 
-            $table-> foreignId('user_id')->contrained();
+            //in order to connect the two tables.
+            $table->foreignId('user_id')->constrained();
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('post');
+        Schema::dropIfExists('posts');
     }
 };
