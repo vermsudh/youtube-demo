@@ -350,3 +350,55 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     ```
     php artisan tinker --execute="print_r(App\Models\Post::all()->toArray());"
     ```
+21) Now that we can create posts, lets show them all back on the home page for a logged-in user.
+
+    First, the view needs the posts. A view only knows about the variables we explicitly hand it, so we fetch the posts in the `/` route and pass them along, in `routes/web.php`:
+
+    ```php
+    use App\Models\Post;
+
+    Route::get('/', function () {
+        $posts = auth()->user()->usersCoolPosts()->latest()->get();
+        return view('home', ['posts' => $posts]);
+    });
+    ```
+
+    A few things going on in that one line:
+
+    - `auth()->user()` gets the currently logged-in `User` instance.
+    - `->usersCoolPosts()` calls the relationship method we defined on `User` (see below), which gives us a query scoped to just that user's posts — same effect as manually writing `Post::where('user_id', auth()->id())`, but reading it through the relationship.
+    - `->latest()` orders the results by `created_at` descending, so the newest post shows up first.
+    - `->get()` actually runs the query and returns the collection.
+
+    A couple of easy mistakes to watch out for here, since they don't always show up as obvious errors:
+
+    - `$posts = ...->get();` — note it's the query chain on the right, and `$posts` (a normal variable) on the left. Writing `$posts::...->get()` calls the query on an undefined variable and silently does nothing.
+    - `['posts' => $posts]` — the array key `'posts'` (the name the view will use) must be a quoted string, and the value must be the `$posts` variable. Leaving off the `$` (`'posts' => posts`) makes PHP treat `posts` as an undefined constant instead of your variable — which is what actually throws the "undefined variable `$posts`" error in the view, since the view never received anything.
+
+    Now, in `resources/views/home.blade.php`, inside the `@auth` block, we loop over `$posts` with `@foreach`:
+
+    ```blade
+    <div style="border: 3px solid black;">
+        <h2>All Posts!</h2>
+        @foreach($posts as $post)
+            <div style="background-color : grey; padding: 10px; margin:10px;">
+                <h3>{{$post['title']}}</h3>
+                {{$post['body']}}
+            </div>
+        @endforeach
+    </div>
+    ```
+
+    Notice inside the loop we use `$post` (singular), not `$posts` — `$posts` is the whole collection, `$post` is the single row Laravel hands us on each pass through the loop. Since an Eloquent model supports array access, `$post['title']` and `$post->title` both work the same way.
+
+    Reload the home page while logged in — you should now see just your own posts rendered on the page, newest first.
+
+    That `usersCoolPosts()` call is a relationship method defined on `App\Models\User`:
+
+    ```php
+    public function usersCoolPosts(){
+        return $this->hasMany(Post::class, 'user_id');
+    }
+    ```
+
+    `$this` refers to the current `User` instance, and `hasMany(Post::class, 'user_id')` tells Eloquent "a user can have many posts, matched by the post's `user_id` column." Defining it this way means we get a reusable, chainable query (`auth()->user()->usersCoolPosts()`) instead of writing `Post::where('user_id', auth()->id())` by hand every time we need a user's posts — which is what let us tack `->latest()` straight onto the end of it above.
