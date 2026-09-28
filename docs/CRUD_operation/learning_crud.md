@@ -529,3 +529,24 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     `$post->delete()` is Eloquent's method for removing the row from the database entirely — after this runs, that post's `id` is gone from the `posts` table for good (there's no "trash" here, unlike Laravel's optional soft-delete feature).
 
     Try it: hit "Delete" on one of your posts — it should disappear from the list on `/`. All four CRUD operations — Create (step 20), Read (step 21), Update (step 23), and Delete (this step) — are now working end to end.
+25) Right now each post only stores its author as a raw `user_id` number. Lets add a relationship so we can show *who* wrote each post, by name.
+
+    In `app/Models/Post.php`, we add a `user()` relationship method — the inverse of the `usersCoolPosts()` relationship we put on `User` back in step 21:
+
+    ```php
+    public function user(){
+        return $this->belongsTo(User::class, 'user_id');
+    }
+    ```
+
+    Where `User::usersCoolPosts()` said "a user `hasMany` posts," this says the reverse: "a post `belongsTo` a single user," matched by the same `user_id` column. Eloquent relationships are usually defined in pairs like this, one on each side.
+
+    With that in place, we can now reach from a post straight to its author in `resources/views/home.blade.php`:
+
+    ```blade
+    <h3>{{$post['title']}} by {{$post->user->name}}</h3>
+    ```
+
+    `$post->user` runs the `belongsTo` relationship and gives us the `User` model that created this post, so `$post->user->name` reads their `name` column straight off of it — no manual `User::find($post['user_id'])` lookup needed.
+
+    Reload the home page — each post's title should now show "by \<name>" after it, using the actual author's name from the `users` table.
