@@ -402,3 +402,56 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     ```
 
     `$this` refers to the current `User` instance, and `hasMany(Post::class, 'user_id')` tells Eloquent "a user can have many posts, matched by the post's `user_id` column." Defining it this way means we get a reusable, chainable query (`auth()->user()->usersCoolPosts()`) instead of writing `Post::where('user_id', auth()->id())` by hand every time we need a user's posts — which is what let us tack `->latest()` straight onto the end of it above.
+22) Now, lets add the ability to edit a post. This starts with just getting an edit screen on the page — actually saving the changes will be its own step later.
+
+    First, in `resources/views/home.blade.php`, we add an "Edit" link next to each post, pointing at a new URL that includes that post's id:
+
+    ```blade
+    <div style="background-color : grey; padding: 10px; margin:10px;">
+        <h3>{{$post['title']}}</h3>
+        {{$post['body']}}
+        <p><a href="/edit-post/{{$post->id}}">Edit</a></p>
+        <form action="/delete-post/{{$post->id}}" method ="POST">
+            @csrf
+            @method('DELETE')
+            <button>Delete</button>
+        </form>
+    </div>
+    ```
+
+    (We also snuck in a "Delete" button/form here at the same time, using `@method('DELETE')` to spoof a `DELETE` request from a plain HTML form — browsers can only submit `GET`/`POST` natively, so Laravel reads this hidden field to know it should treat the request as a delete. Don't click it yet though — there's no `/delete-post/{post}` route or controller method wired up for it. We'll get to that in a future step.)
+
+    Next, we add a route for the edit link to go to, in `routes/web.php`:
+
+    ```php
+    Route::get('/edit-post/{post}', [PostController::class, 'showEditScreen']);
+    ```
+
+    The `{post}` in the URL is Laravel's **implicit route model binding**. Because our controller method's parameter is type-hinted `Post $post` (same name as the route segment), Laravel automatically looks up a `Post` by its `id` from the URL and injects the actual model instance — we don't have to manually write `Post::find($id)` ourselves. If no post with that id exists, Laravel automatically returns a 404 for us.
+
+    In `app/Http/Controllers/PostController.php`, the new method just returns a view and hands it the post:
+
+    ```php
+    public function showEditScreen(Post $post){
+        return view('edit-post', ['post' => $post]);
+    }
+    ```
+
+    Finally, we create a new view, `resources/views/edit-post.blade.php`, with a form pre-filled with the post's current values:
+
+    ```blade
+    <h1>Edit Post</h1>
+    <form action="/edit-post/{{$post->id}}" method="POST">
+        @csrf
+        @method('PUT')
+        <input type="text" name='title' value="{{$post->title}}">
+        <textarea name="body" id="" cols="30" rows="10">
+            {{$post->body}}
+        </textarea>
+        <button>Save Changes</button>
+    </form>
+    ```
+
+    Same trick as the delete button: HTML forms can't send `PUT` requests natively, so `@method('PUT')` spoofs one — `PUT`/`PATCH` are the conventional HTTP methods for "update an existing resource." The `value="{{$post->title}}"` and `{{$post->body}}` pre-fill the inputs with the post's existing data so the user is editing, not starting from a blank form.
+
+    Clicking "Edit" on a post now takes you to a form pre-filled with that post's data — but clicking "Save Changes" won't do anything yet, since there's no route or controller method handling `PUT /edit-post/{post}` yet. That's the next step.
