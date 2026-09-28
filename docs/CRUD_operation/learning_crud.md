@@ -271,5 +271,82 @@ On this CRUD operation, We are not styling anything. We are just here to do basi
     ```
 
     Now, lets organize the route and create a seperate controler for posting methods.
-    using cmd : 
-20) sdfsaf
+    using cmd :
+
+    ```
+    php artisan make:controller PostController
+    ```
+20) Now, we write the logic inside `PostController` to actually save a post, and connect everything together: the model, the controller, and the route.
+
+    First, we need a `Post` model so Eloquent knows how to talk to the `posts` table (same idea as the `User` model in step 15). We can generate one with:
+
+    ```
+    php artisan make:model Post
+    ```
+
+    ```php
+    class Post extends Model
+    {
+        use HasFactory;
+
+        protected $fillable = [
+            'title',
+            'body',
+            'user_id',
+        ];
+    }
+    ```
+
+    Just like `User`, we mark `title`, `body` and `user_id` as `$fillable` so we're allowed to mass-assign them with `Post::create()`.
+
+    Now, in `app/Http/Controllers/PostController.php`, we add a `createPost` method:
+
+    ```php
+    class PostController extends Controller
+    {
+        public function createPost(Request $request){
+            $incomingFields = $request->validate(
+                [
+                    'title' => 'required',
+                    'body' => 'required'
+                ]
+            );
+
+            $incomingFields['title'] = strip_tags($incomingFields['title']);
+            $incomingFields['body'] = strip_tags($incomingFields['body']);
+
+            $incomingFields['user_id'] = auth()->id();
+            Post::create($incomingFields);
+
+            return redirect('/');
+        }
+    }
+    ```
+
+    A couple of new things here compared to `register()`:
+
+    - `strip_tags()` removes any HTML/PHP tags from the title and body before we save them. Since the post `body` is free text from a `<textarea>`, this is a basic safeguard against a user submitting raw HTML/JS (XSS) that would later get rendered back on the page.
+    - `auth()->id()` gets the ID of the currently logged-in user (remember, this whole form is only reachable inside the `@auth` block, so we always have a logged-in user here). We attach it as `user_id` so the new post is linked to its author via the foreign key we set up on the `posts` table in step 18.
+
+    Finally, we wire up the route in `routes/web.php`, importing the controller just like we did for `UserController`:
+
+    ```php
+    use App\Http\Controllers\PostController;
+
+    //blog post related routes.
+    Route::post('/create-post', [PostController::class, 'createPost']);
+    ```
+
+    Now, submitting the "Create a new Post" form from step 19 will insert a row into the `posts` table, tagged with the logged-in user's `id`.
+
+    We can check the data the same way we checked the `users` table in step 15:
+
+    ```
+    sqlite3 database/database.sqlite "SELECT id, title, body, user_id FROM posts;"
+    ```
+
+    or via tinker:
+
+    ```
+    php artisan tinker --execute="print_r(App\Models\Post::all()->toArray());"
+    ```
